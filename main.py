@@ -45,7 +45,7 @@ async def join_game(message: types.Message):
         players.append(message.from_user.id)
         await message.answer(f"Вы присоединились! Игроков: {len(players)}")
 
-        if len(players) == 6:
+        if len(players) == 2:
             game_active = True
             await start_round(message.chat.id)
 
