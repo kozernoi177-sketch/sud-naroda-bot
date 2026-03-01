@@ -14,6 +14,9 @@ players = []
 game_active = False
 current_accused = None
 votes = {}
+round_number = 0
+max_rounds = 3
+scores = {}
 
 
 @dp.message_handler(commands=['start'])
@@ -25,9 +28,11 @@ async def start_handler(message: types.Message):
 
 @dp.callback_query_handler(lambda c: c.data == "create_game")
 async def create_game(callback: types.CallbackQuery):
-    global players, game_active, votes
+    global players, game_active, votes, round_number, scores
     players = []
     votes = {}
+    scores = {}
+    round_number = 0
     game_active = False
     await callback.message.answer("Игра создана!\nНапишите /join чтобы присоединиться.")
     await callback.answer()
@@ -43,9 +48,10 @@ async def join_game(message: types.Message):
 
     if message.from_user.id not in players:
         players.append(message.from_user.id)
+        scores[message.from_user.id] = 0
         await message.answer(f"Вы присоединились! Игроков: {len(players)}")
 
-        if len(players) == 2:
+        if len(players) == 2:  # для теста
             game_active = True
             await start_round(message.chat.id)
 
@@ -54,9 +60,10 @@ async def join_game(message: types.Message):
 
 
 async def start_round(chat_id):
-    global current_accused, votes
+    global current_accused, votes, round_number
 
     votes = {}
+    round_number += 1
     current_accused = random.choice(players)
 
     user = await bot.get_chat(current_accused)
@@ -69,13 +76,13 @@ async def start_round(chat_id):
 
     await bot.send_message(
         chat_id,
-        f"⚖️ Игра начинается!\n\n"
+        f"⚖️ Раунд {round_number}/{max_rounds}\n\n"
         f"🔴 Обвиняемый: @{user.username if user.username else user.first_name}\n\n"
-        f"У вас 30 секунд на голосование.",
+        f"Голосование 20 секунд.",
         reply_markup=keyboard
     )
 
-    await asyncio.sleep(30)
+    await asyncio.sleep(20)
     await finish_round(chat_id)
 
 
@@ -84,7 +91,15 @@ async def vote_handler(callback: types.CallbackQuery):
     global votes
 
     if callback.from_user.id not in players:
-        await callback.answer("Вы не участвуете в игре.", show_alert=True)
+        await callback.answer("Вы не участвуете.", show_alert=True)
+        return
+
+    if callback.from_user.id == current_accused:
+        await callback.answer("Обвиняемый не может голосовать!", show_alert=True)
+        return
+
+    if callback.from_user.id in votes:
+        await callback.answer("Вы уже проголосовали!", show_alert=True)
         return
 
     votes[callback.from_user.id] = callback.data
@@ -97,16 +112,45 @@ async def finish_round(chat_id):
     guilty_votes = list(votes.values()).count("guilty")
     innocent_votes = list(votes.values()).count("innocent")
 
-    verdict = random.choice(["guilty", "innocent"])  # случайная истина для MVP
-
-    result_text = f"\n📊 Голоса:\n🔴 Казнить: {guilty_votes}\n🟢 Оправдать: {innocent_votes}\n\n"
+    if guilty_votes > innocent_votes:
+        verdict = "guilty"
+    else:
+        verdict = "innocent"
 
     if verdict == "guilty":
-        result_text += "⚠️ Обвиняемый действительно ВИНОВЕН!"
+        for user_id in votes:
+            if votes[user_id] == "guilty":
+                scores[user_id] += 1
+        result_text = "⚠️ Обвиняемый казнён!"
     else:
-        result_text += "❗ Обвиняемый был НЕВИНОВЕН!"
+        for user_id in votes:
+            if votes[user_id] == "innocent":
+                scores[user_id] += 1
+        result_text = "🟢 Обвиняемый оправдан!"
+
+    result_text += f"\n\n📊 Голоса:\n🔴 {guilty_votes}\n🟢 {innocent_votes}"
 
     await bot.send_message(chat_id, result_text)
+
+    if round_number < max_rounds:
+        await asyncio.sleep(3)
+        await start_round(chat_id)
+    else:
+        await end_game(chat_id)
+
+
+async def end_game(chat_id):
+    global game_active
+
+    winner = max(scores, key=scores.get)
+    user = await bot.get_chat(winner)
+
+    await bot.send_message(
+        chat_id,
+        f"🏆 Игра окончена!\n\n"
+        f"Победитель: @{user.username if user.username else user.first_name}\n"
+        f"Очков: {scores[winner]}"
+    )
 
     game_active = False
 
