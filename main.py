@@ -17,22 +17,27 @@ votes = {}
 round_number = 0
 max_rounds = 3
 scores = {}
+truth = None
+detective = None
+detective_used = False
 
 
 @dp.message_handler(commands=['start'])
 async def start_handler(message: types.Message):
     keyboard = InlineKeyboardMarkup()
     keyboard.add(InlineKeyboardButton("🎮 Создать игру", callback_data="create_game"))
-    await message.answer("⚖️ Суд народа\n\nНажмите, чтобы создать игру.", reply_markup=keyboard)
+    await message.answer("⚖️ Суд народа 2.0\n\nНажмите, чтобы создать игру.", reply_markup=keyboard)
 
 
 @dp.callback_query_handler(lambda c: c.data == "create_game")
 async def create_game(callback: types.CallbackQuery):
-    global players, game_active, votes, round_number, scores
+    global players, game_active, votes, round_number, scores, detective, detective_used
     players = []
     votes = {}
     scores = {}
     round_number = 0
+    detective = None
+    detective_used = False
     game_active = False
     await callback.message.answer("Игра создана!\nНапишите /join чтобы присоединиться.")
     await callback.answer()
@@ -40,7 +45,7 @@ async def create_game(callback: types.CallbackQuery):
 
 @dp.message_handler(commands=['join'])
 async def join_game(message: types.Message):
-    global game_active
+    global game_active, detective
 
     if game_active:
         await message.answer("Игра уже идёт.")
@@ -52,6 +57,8 @@ async def join_game(message: types.Message):
         await message.answer(f"Вы присоединились! Игроков: {len(players)}")
 
         if len(players) == 2:  # для теста
+            detective = random.choice(players)
+            await bot.send_message(detective, "🕵 Вы — Детектив! Напишите /check в раунде, чтобы узнать истину (1 раз).")
             game_active = True
             await start_round(message.chat.id)
 
@@ -60,11 +67,12 @@ async def join_game(message: types.Message):
 
 
 async def start_round(chat_id):
-    global current_accused, votes, round_number
+    global current_accused, votes, round_number, truth
 
     votes = {}
     round_number += 1
     current_accused = random.choice(players)
+    truth = random.choice(["guilty", "innocent"])
 
     user = await bot.get_chat(current_accused)
 
@@ -84,6 +92,25 @@ async def start_round(chat_id):
 
     await asyncio.sleep(20)
     await finish_round(chat_id)
+
+
+@dp.message_handler(commands=['check'])
+async def detective_check(message: types.Message):
+    global detective_used
+
+    if message.from_user.id != detective:
+        return
+
+    if detective_used:
+        await message.answer("Вы уже использовали проверку.")
+        return
+
+    detective_used = True
+
+    if truth == "guilty":
+        await message.answer("🔎 Истина: Обвиняемый ВИНОВЕН.")
+    else:
+        await message.answer("🔎 Истина: Обвиняемый НЕВИНОВЕН.")
 
 
 @dp.callback_query_handler(lambda c: c.data in ["guilty", "innocent"])
@@ -113,22 +140,24 @@ async def finish_round(chat_id):
     innocent_votes = list(votes.values()).count("innocent")
 
     if guilty_votes > innocent_votes:
-        verdict = "guilty"
+        public_verdict = "guilty"
     else:
-        verdict = "innocent"
+        public_verdict = "innocent"
 
-    if verdict == "guilty":
+    result_text = f"\n📊 Голоса:\n🔴 {guilty_votes}\n🟢 {innocent_votes}\n\n"
+
+    if public_verdict == truth:
+        result_text += "✅ Толпа приняла ПРАВИЛЬНОЕ решение!\n"
         for user_id in votes:
-            if votes[user_id] == "guilty":
+            if votes[user_id] == truth:
                 scores[user_id] += 1
-        result_text = "⚠️ Обвиняемый казнён!"
     else:
-        for user_id in votes:
-            if votes[user_id] == "innocent":
-                scores[user_id] += 1
-        result_text = "🟢 Обвиняемый оправдан!"
+        result_text += "❌ Толпа ОШИБЛАСЬ!\n"
 
-    result_text += f"\n\n📊 Голоса:\n🔴 {guilty_votes}\n🟢 {innocent_votes}"
+    if truth == "guilty":
+        result_text += "⚠️ Истина: Обвиняемый был ВИНОВЕН."
+    else:
+        result_text += "🟢 Истина: Обвиняемый был НЕВИНОВЕН."
 
     await bot.send_message(chat_id, result_text)
 
