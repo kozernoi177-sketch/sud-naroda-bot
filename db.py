@@ -53,3 +53,12 @@ def update_gender(user_id, gender):
     cursor.execute("UPDATE users SET gender=? WHERE user_id=?",
                    (gender, user_id))
     conn.commit()
+    def add_win(user_id):
+    cursor.execute("UPDATE users SET wins = wins + 1 WHERE user_id=?", (user_id,))
+    conn.commit()
+
+
+def add_game(user_id):
+    cursor.execute("UPDATE users SET games_played = games_played + 1 WHERE user_id=?", (user_id,))
+    conn.commit()
+    
