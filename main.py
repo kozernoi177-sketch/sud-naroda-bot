@@ -320,7 +320,7 @@ elif roll <= 95:
 else:
     accusation = random.choice(LEGENDARY_ACCUSATIONS)
     rarity_text = "\n🔴🔥 ЛЕГЕНДАРНОЕ ОБВИНЕНИЕ!"
-    user = await bot.get_chat(current_accused)
+user = await bot.get_chat(current_accused)
 
     kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
