@@ -33,7 +33,29 @@ lawyer_used = False
 prosecutor_used = False
 detective_used = False
 
+# ==========================
+# ОБВИНЕНИЯ
+# ==========================
 
+COMMON_ACCUSATIONS = [
+    "Подделке документов",
+    "Краже из казны",
+    "Сговоре с преступниками",
+    "Манипуляции голосованием",
+    "Ложных показаниях",
+    "Скрытии улик"
+]
+
+RARE_ACCUSATIONS = [
+    "Саботаже судебного процесса",
+    "Фальсификации приговора",
+    "Подкупе присяжных"
+]
+
+LEGENDARY_ACCUSATIONS = [
+    "Попытке разрушить Суд Народа",
+    "Глобальной манипуляции истиной"
+]
 # =========================
 # ВСПОМОГАТЕЛЬНОЕ
 # =========================
@@ -286,6 +308,18 @@ async def start_round():
     current_accused = random.choice(players)
     truth = random.choice(["guilty", "innocent"])
 
+
+roll = random.randint(1, 100)
+
+if roll <= 75:
+    accusation = random.choice(COMMON_ACCUSATIONS)
+    rarity_text = ""
+elif roll <= 95:
+    accusation = random.choice(RARE_ACCUSATIONS)
+    rarity_text = "\n🟡 Редкое обвинение!"
+else:
+    accusation = random.choice(LEGENDARY_ACCUSATIONS)
+    rarity_text = "\n🔴🔥 ЛЕГЕНДАРНОЕ ОБВИНЕНИЕ!"
     user = await bot.get_chat(current_accused)
 
     kb = InlineKeyboardMarkup(row_width=2)
