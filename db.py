@@ -15,6 +15,8 @@ def init_db():
             exp INTEGER DEFAULT 0,
             wins INTEGER DEFAULT 0,
             games_played INTEGER DEFAULT 0
+            rating INTEGER DEFAULT 1000,
+            win_streak INTEGER DEFAULT 0,
         )
     """)
     conn.commit()
@@ -73,3 +75,5 @@ def update_language(user_id, lang):
         (lang, user_id)
     )
     conn.commit()
+
+
