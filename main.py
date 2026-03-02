@@ -51,7 +51,7 @@ def main_menu(bot_username):
         InlineKeyboardButton("⚖️ Создать игру", callback_data="create_game"),
         InlineKeyboardButton("👤 Профиль", callback_data="profile"),
         InlineKeyboardButton("🎭 Роли", callback_data="roles_menu"),
-        InlineKeyboardButton("ℹ️ Об игре", callback_data="about_game"),
+        InlineKeyboardButton("📜 Об игре", callback_data="about_game"),
         InlineKeyboardButton("🌍 Язык", callback_data="language"),
         InlineKeyboardButton(
             "➕ Добавить в чат",
@@ -68,12 +68,20 @@ def main_menu(bot_username):
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
     register_user(message.from_user.id, message.from_user.username)
-    lang = get_lang(message.from_user.id)
     bot_info = await bot.get_me()
 
+    text = (
+        "⚖️ <b>СУД НАРОДА</b>\n\n"
+        "🎭 Психологическая игра голосования\n"
+        "💰 Прокачивайся. Побеждай.\n"
+        "🏆 Докажи, что чувствуешь истину.\n\n"
+        "Выберите действие:"
+    )
+
     await message.answer(
-        TEXTS[lang]["welcome"],
-        reply_markup=main_menu(bot_info.username)
+        text,
+        reply_markup=main_menu(bot_info.username),
+        parse_mode="HTML"
     )
 
 
@@ -87,19 +95,20 @@ async def profile(callback: types.CallbackQuery):
     level = calculate_level(user[5])
 
     text = (
-        f"👤 @{user[1]}\n\n"
-        f"💵 Деньги: {user[3]}\n"
-        f"💎 Камни: {user[4]}\n"
-        f"⭐ Уровень: {level}\n"
-        f"🏆 Победы: {user[6]}\n"
-        f"🎮 Игр сыграно: {user[7]}"
+        "👤 <b>ПРОФИЛЬ</b>\n\n"
+        f"🧑 Ник: @{user[1]}\n\n"
+        f"💵 Баланс: <b>{user[3]}</b>\n"
+        f"⭐ Уровень: <b>{level}</b>\n"
+        f"🏆 Победы: <b>{user[6]}</b>\n"
+        f"🎮 Игр сыграно: <b>{user[7]}</b>\n"
     )
 
     await callback.message.edit_text(
         text,
         reply_markup=InlineKeyboardMarkup().add(
             InlineKeyboardButton("⬅ Назад", callback_data="back")
-        )
+        ),
+        parse_mode="HTML"
     )
     await callback.answer()
 
@@ -112,25 +121,28 @@ async def profile(callback: types.CallbackQuery):
 async def about_game(callback: types.CallbackQuery):
 
     text = (
-        "⚖️ СУД НАРОДА\n\n"
-        "Игра проходит в 3 раунда.\n"
-        "Каждый раунд выбирается обвиняемый.\n\n"
-        "Игроки голосуют: казнить или оправдать.\n"
-        "Некоторые роли имеют способности.\n\n"
-        "За участие начисляются деньги и опыт."
+        "📜 <b>КАК ПРОХОДИТ ИГРА</b>\n\n"
+        "1️⃣ Каждый раунд выбирается обвиняемый.\n"
+        "2️⃣ Система знает истину.\n"
+        "3️⃣ Игроки голосуют.\n"
+        "4️⃣ Спец-роли влияют на исход.\n\n"
+        "🎯 Голосуй правильно.\n"
+        "💰 Получай награды.\n"
+        "🏆 Побеждай."
     )
 
     await callback.message.edit_text(
         text,
         reply_markup=InlineKeyboardMarkup().add(
             InlineKeyboardButton("⬅ Назад", callback_data="back")
-        )
+        ),
+        parse_mode="HTML"
     )
     await callback.answer()
 
 
 # =========================
-# РОЛИ
+# РОЛИ (POPUP STYLE)
 # =========================
 
 @dp.callback_query_handler(lambda c: c.data == "roles_menu")
@@ -157,12 +169,12 @@ async def role_info(callback: types.CallbackQuery):
     role = callback.data.split("_")[1]
 
     descriptions = {
-        "detective": "🕵 Детектив\n/check — узнать истину.",
-        "judge": "⚖ Судья\nГолос считается за 2.",
-        "prosecutor": "🎯 Прокурор\n/accuse — сменить обвиняемого.",
-        "lawyer": "🛡 Адвокат\n/protect — убрать 1 голос.",
-        "avenger": "🧨 Мститель\n/revenge @username — забрать игрока.",
-        "citizen": "👤 Гражданин\nПросто голосует."
+        "detective": "🕵 Детектив\n\n/check — узнать истину (1 раз).",
+        "judge": "⚖ Судья\n\nЕго голос считается за 2.",
+        "prosecutor": "🎯 Прокурор\n\n/accuse — сменить обвиняемого (1 раз).",
+        "lawyer": "🛡 Адвокат\n\n/protect — убрать 1 голос (1 раз).",
+        "avenger": "🧨 Мститель\n\n/revenge @ник — если казнили, забирает игрока.",
+        "citizen": "👤 Гражданин\n\nПросто голосует."
     }
 
     await callback.message.edit_text(
@@ -177,10 +189,19 @@ async def role_info(callback: types.CallbackQuery):
 @dp.callback_query_handler(lambda c: c.data == "back")
 async def back(callback: types.CallbackQuery):
     bot_info = await bot.get_me()
-    lang = get_lang(callback.from_user.id)
+
+    text = (
+        "⚖️ <b>СУД НАРОДА</b>\n\n"
+        "🎭 Психологическая игра голосования\n"
+        "💰 Прокачивайся. Побеждай.\n"
+        "🏆 Докажи, что чувствуешь истину.\n\n"
+        "Выберите действие:"
+    )
+
     await callback.message.edit_text(
-        TEXTS[lang]["welcome"],
-        reply_markup=main_menu(bot_info.username)
+        text,
+        reply_markup=main_menu(bot_info.username),
+        parse_mode="HTML"
     )
     await callback.answer()
 
@@ -275,9 +296,10 @@ async def start_round():
 
     await bot.send_message(
         game_chat_id,
-        f"⚖️ Раунд {round_number}/{max_rounds}\n"
-        f"Обвиняемый: @{user.username if user.username else user.first_name}",
-        reply_markup=kb
+        f"⚖️ <b>РАУНД {round_number}/{max_rounds}</b>\n\n"
+        f"👤 Обвиняемый: @{user.username if user.username else user.first_name}",
+        reply_markup=kb,
+        parse_mode="HTML"
     )
 
     await asyncio.sleep(20)
@@ -321,7 +343,11 @@ async def finish_round():
     else:
         game_active = False
         players.clear()
-        await bot.send_message(game_chat_id, "🏆 Игра завершена!")
+        await bot.send_message(
+            game_chat_id,
+            "🏆 <b>СУД ЗАВЕРШЁН</b>\n\nИстина раскрыта.",
+            parse_mode="HTML"
+        )
 
 
 if __name__ == "__main__":
