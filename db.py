@@ -14,9 +14,9 @@ def init_db():
             diamonds INTEGER DEFAULT 0,
             exp INTEGER DEFAULT 0,
             wins INTEGER DEFAULT 0,
-            games_played INTEGER DEFAULT 0
+            games_played INTEGER DEFAULT 0,
             rating INTEGER DEFAULT 1000,
-            win_streak INTEGER DEFAULT 0,
+            win_streak INTEGER DEFAULT 0
         )
     """)
     conn.commit()
